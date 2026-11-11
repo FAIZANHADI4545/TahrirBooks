@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Admin – TahrirBook</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<style>td,th{padding:.6rem .7rem;text-align:left;vertical-align:top}th{font-size:.75rem;text-transform:uppercase;letter-spacing:.04em;color:var(--mute);white-space:nowrap}
+tbody tr{border-top:1px solid var(--line)}.pill{font-size:.72rem;font-weight:600;border-radius:999px;padding:.15rem .6rem;white-space:nowrap}
+.sm{padding:.3rem .8rem;font-size:.82rem}.lnk{color:var(--g);font-size:.8rem;text-decoration:underline;cursor:pointer;background:none;border:0}</style></head>
+<body>
+<div id="login" class="min-h-screen flex items-center justify-center p-4">
+ <form id="lf" class="w-full max-w-sm rounded-2xl p-6" style="background:var(--soft)">
+  <h1 class="serif text-2xl font-bold" style="color:var(--g)">TahrirBook admin</h1>
+  <p class="text-sm mt-1 mb-4" style="color:var(--mute)">Enter your admin password.</p>
+  <label class="text-sm" for="pw">Password</label><input id="pw" type="password" class="inp" autocomplete="current-password">
+  <p id="lerr" class="text-sm mt-2" style="color:#b3261e"></p>
+  <button class="btn w-full mt-3" id="lb" type="submit">Sign in</button></form>
+</div>
+
+<div id="app" class="hidden">
+ <header class="bg-white sticky top-0 z-20" style="border-bottom:1px solid var(--line)"><div class="wrap py-3 flex items-center gap-3 flex-wrap">
+  <span class="serif text-xl font-bold" style="color:var(--g)">TahrirBook admin</span>
+  <nav class="flex gap-2 ml-2"><button class="btn sm" id="t-orders">Orders</button><button class="btn2 sm" id="t-products">Products</button></nav>
+  <span id="upd" class="text-xs ml-auto" style="color:var(--mute)"></span>
+  <button class="btn2 sm" id="refresh">Refresh</button><a class="btn2 sm" href="index.html" target="_blank">View store</a><button class="btn2 sm" id="logout">Sign out</button></div></header>
+ <main class="wrap py-6">
+  <section id="s-orders">
+   <div id="stats" class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5"></div>
+   <div class="flex flex-wrap gap-2 items-center mb-4"><div id="chips" class="flex gap-2 flex-wrap"></div><input id="oq" class="inp !w-auto ml-auto" placeholder="Search name, phone, city, order" aria-label="Search orders"></div>
+   <div class="overflow-x-auto rounded-xl" style="border:1px solid var(--line)"><table class="w-full text-sm"><thead style="background:var(--soft)"><tr><th>Order</th><th>Customer</th><th>Delivery address</th><th>Items</th><th>Total</th><th>Status</th><th>Action</th></tr></thead><tbody id="orows"></tbody></table></div>
+   <p id="oempty" class="text-center py-10 hidden" style="color:var(--mute)">No orders yet.</p>
+  </section>
+  <section id="s-products" class="hidden">
+   <form id="pf" class="rounded-2xl p-5 mb-6 grid md:grid-cols-6 gap-3" style="background:var(--soft)" novalidate>
+    <h2 class="serif text-xl font-bold md:col-span-6" id="ptitle">Add a book</h2>
+    <input type="hidden" id="pID">
+    <div class="md:col-span-3"><label class="text-sm" for="pTitle">Title</label><input id="pTitle" class="inp"></div>
+    <div class="md:col-span-3"><label class="text-sm" for="pAuthor">Author</label><input id="pAuthor" class="inp"></div>
+    <div><label class="text-sm" for="pPrice">Price (Rs)</label><input id="pPrice" type="number" min="0" class="inp"></div>
+    <div><label class="text-sm" for="pStock">Stock</label><input id="pStock" type="number" min="0" class="inp"></div>
+    <div><label class="text-sm" for="pCond">Condition</label><select id="pCond" class="inp"><option>New</option><option>Pre-Loved</option></select></div>
+    <div class="md:col-span-3"><label class="text-sm" for="pCat">Category (optional)</label><input id="pCat" class="inp" placeholder="e.g. Urdu novels"></div>
+    <div class="md:col-span-5"><label class="text-sm" for="pImg">Cover image link (https://…)</label><input id="pImg" class="inp"></div>
+    <div class="flex items-end"><div id="prev" class="w-16 h-20 rounded-lg overflow-hidden" style="background:var(--line)"></div></div>
+    <div class="md:col-span-6"><label class="text-sm" for="pDesc">Description (optional)</label><textarea id="pDesc" rows="2" class="inp"></textarea></div>
+    <p id="perr" class="text-sm md:col-span-6" style="color:#b3261e"></p>
+    <div class="md:col-span-6 flex gap-2"><button class="btn" id="psave" type="submit">Save book</button><button class="btn2" type="button" id="pclear">Clear form</button></div>
+   </form>
+   <div class="overflow-x-auto rounded-xl" style="border:1px solid var(--line)"><table class="w-full text-sm"><thead style="background:var(--soft)"><tr><th>ID</th><th>Book</th><th>Price</th><th>Stock</th><th>Condition</th><th>Category</th><th></th></tr></thead><tbody id="prows"></tbody></table></div>
+  </section>
+ </main>
+</div>
+<div id="toast" role="status"></div>
+
+<script src="config.js"></script>
+<script>
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const rs=n=>"Rs "+Number(n).toLocaleString("en-PK");
+let pw="",orders=[],prods=[],filter="All",oq="",timer=null;
+try{pw=sessionStorage.getItem("tb_admin")||""}catch(e){}
+function toast(m){const t=$("toast");t.textContent=m;t.style.display="block";clearTimeout(toast.t);toast.t=setTimeout(()=>t.style.display="none",2400)}
+
+async function api(action,data){
+ if(!API_URL)throw new Error("API_URL is empty in config.js");
+ const r=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(Object.assign({action,password:pw},data||{}))});
+ const j=await r.json();if(!j.ok)throw new Error(j.error||"Request failed");return j;
+}
+
+/* ----- login ----- */
+$("lf").onsubmit=async e=>{
+ e.preventDefault();pw=$("pw").value;$("lerr").textContent="";$("lb").disabled=true;$("lb").textContent="Checking…";
+ try{await api("orders");try{sessionStorage.setItem("tb_admin",pw)}catch(x){}start()}
+ catch(err){$("lerr").textContent=err.message.indexOf("fetch")>-1?"Could not reach the server. Check API_URL and your connection.":err.message}
+ $("lb").disabled=false;$("lb").textContent="Sign in";
+};
+$("logout").onclick=()=>{try{sessionStorage.removeItem("tb_admin")}catch(e){}pw="";clearInterval(timer);$("app").classList.add("hidden");$("login").classList.remove("hidden");$("pw").value=""};
+async function start(){$("login").classList.add("hidden");$("app").classList.remove("hidden");await Promise.all([loadOrders(),loadProducts()]);clearInterval(timer);timer=setInterval(()=>{if(!document.hidden)loadOrders(true)},30000)}
+function authFail(err){if(/password|attempts/i.test(err.message)){$("logout").onclick();$("lerr").textContent=err.message}else toast(err.message)}
+
+/* ----- tabs ----- */
+function tab(t){["orders","products"].forEach(x=>{$("s-"+x).classList.toggle("hidden",x!==t);$("t-"+x).className=(x===t?"btn":"btn2")+" sm"})}
+$("t-orders").onclick=()=>tab("orders");$("t-products").onclick=()=>tab("products");
+$("refresh").onclick=()=>{loadOrders();loadProducts()};
+
+/* ----- orders ----- */
+const NEXT={Pending:["Dispatched","Mark dispatched"],Dispatched:["Delivered","Mark delivered"]};
+const COL={Pending:"#fff3c4;color:#6b5200",Dispatched:"#dbeafe;color:#1e4a8a",Delivered:"#d7f0e4;color:#0a5a3a",Cancelled:"#eee;color:#555",Returned:"#fde2e0;color:#8a1f16"};
+async function loadOrders(silent){
+ try{orders=(await api("orders")).orders;$("upd").textContent="Updated "+new Date().toLocaleTimeString("en-PK",{hour:"2-digit",minute:"2-digit"});drawOrders()}
+ catch(err){if(!silent)authFail(err)}
+}
+function drawOrders(){
+ const st=s=>orders.filter(o=>o.Status===s).length;
+ const rev=orders.filter(o=>o.Status==="Delivered").reduce((a,o)=>a+o.Total,0);
+ $("stats").innerHTML=[["Pending",st("Pending")],["Dispatched",st("Dispatched")],["Delivered",st("Delivered")],["Delivered revenue",rs(rev)]].map(x=>`<div class="rounded-xl p-4" style="background:var(--soft)"><div class="text-xs" style="color:var(--mute)">${x[0]}</div><div class="serif text-2xl font-bold">${x[1]}</div></div>`).join("");
+ $("chips").innerHTML=["All","Pending","Dispatched","Delivered","Cancelled","Returned"].map(f=>`<button class="${f===filter?"btn":"btn2"} sm" data-f="${f}">${f}${f==="All"?"":" ("+st(f)+")"}</button>`).join("");
+ const q=oq.toLowerCase();
+ const l=orders.filter(o=>(filter==="All"||o.Status===filter)&&(o.OrderID+o.Name+o.Phone+o.City).toLowerCase().includes(q));
+ $("oempty").classList.toggle("hidden",l.length>0);$("oempty").textContent=orders.length?"No orders match.":"No orders yet.";
+ $("orows").innerHTML=l.map(o=>{
+  const wa="92"+o.Phone.replace(/^\+?92|^0/,"").replace(/\D/g,""),n=NEXT[o.Status];
+  return `<tr><td><b>${esc(o.OrderID)}</b><div class="text-xs" style="color:var(--mute)">${esc(o.Date)}</div></td>
+  <td><b>${esc(o.Name)}</b><div><a class="lnk" href="tel:${esc(o.Phone)}">${esc(o.Phone)}</a> · <a class="lnk" target="_blank" rel="noopener" href="https://wa.me/${wa}">WhatsApp</a></div></td>
+  <td style="min-width:200px"><b>${esc(o.City)}</b><div class="text-xs" style="color:var(--mute)">${esc(o.Address)}</div></td>
+  <td style="min-width:160px">${esc(o.Items)}</td><td class="whitespace-nowrap font-semibold">${rs(o.Total)}</td>
+  <td><span class="pill" style="background:${COL[o.Status]||"#eee"}">${esc(o.Status)}</span></td>
+  <td class="whitespace-nowrap">${n?`<button class="btn sm" data-o="${esc(o.OrderID)}" data-s="${n[0]}">${n[1]}</button> <button class="lnk" data-o="${esc(o.OrderID)}" data-s="Cancelled">Cancel</button>`:o.Status==="Delivered"?`<button class="lnk" data-o="${esc(o.OrderID)}" data-s="Returned">Mark returned</button>`:""}</td></tr>`}).join("");
+}
+document.addEventListener("click",async e=>{
+ const b=e.target.closest("button");if(!b)return;
+ if(b.dataset.f){filter=b.dataset.f;drawOrders()}
+ else if(b.dataset.o){
+  const s=b.dataset.s;
+  if((s==="Cancelled"||s==="Returned")&&!confirm(s+" this order? The books will go back into stock."))return;
+  b.disabled=true;
+  try{await api("status",{orderId:b.dataset.o,status:s});toast("Order marked "+s);await loadOrders();loadProducts()}catch(err){authFail(err);b.disabled=false}
+ }
+ else if(b.dataset.edit)editProd(b.dataset.edit);
+ else if(b.dataset.del){
+  const p=prods.find(x=>String(x.ID)===b.dataset.del);
+  if(!confirm("Delete “"+p.Title+"” from the store? This cannot be undone."))return;
+  try{await api("deleteProduct",{id:p.ID});toast("Book deleted");loadProducts()}catch(err){authFail(err)}
+ }
+});
+$("oq").oninput=e=>{oq=e.target.value.trim();drawOrders()};
+
+/* ----- products ----- */
+async function loadProducts(){try{prods=(await api("products")).products;drawProds()}catch(err){authFail(err)}}
+function drawProds(){
+ $("prows").innerHTML=prods.map(p=>`<tr><td>${esc(p.ID)}</td><td><b>${esc(p.Title)}</b><div class="text-xs" style="color:var(--mute)">${esc(p.Author)}</div></td><td class="whitespace-nowrap">${rs(p.Price)}</td>
+  <td style="color:${p.Stock<1?"#b3261e":p.Stock<=3?"#9a6700":"inherit"};font-weight:${p.Stock<=3?600:400}">${p.Stock}</td><td>${esc(p.Condition)}</td><td>${esc(p.Category)}</td>
+  <td class="whitespace-nowrap"><button class="lnk" data-edit="${esc(p.ID)}">Edit</button> · <button class="lnk" style="color:#b3261e" data-del="${esc(p.ID)}">Delete</button></td></tr>`).join("")||'<tr><td colspan="7" class="text-center py-8" style="color:var(--mute)">No books yet. Add your first one above.</td></tr>';
+}
+const F={ID:"pID",Title:"pTitle",Author:"pAuthor",Price:"pPrice",Stock:"pStock",Condition:"pCond",Category:"pCat",CoverImageURL:"pImg",Description:"pDesc"};
+function preview(){const u=$("pImg").value.trim();$("prev").innerHTML=/^https?:\/\//i.test(u)?`<img src="${esc(u)}" alt="" class="w-full h-full object-cover" onerror="this.remove()">`:""}
+function clearForm(){Object.values(F).forEach(i=>$(i).value="");$("pCond").value="New";$("ptitle").textContent="Add a book";$("perr").textContent="";preview()}
+function editProd(id){const p=prods.find(x=>String(x.ID)===id);Object.keys(F).forEach(k=>$(F[k]).value=p[k]==null?"":p[k]);$("ptitle").textContent="Edit book #"+p.ID;preview();window.scrollTo({top:0,behavior:"smooth"})}
+$("pclear").onclick=clearForm;$("pImg").oninput=preview;
+$("pf").onsubmit=async e=>{
+ e.preventDefault();const p={};Object.keys(F).forEach(k=>p[k]=$(F[k]).value.trim());
+ let m="";
+ if(!p.Title||!p.Author)m="Enter the title and author.";
+ else if(p.Price===""||isNaN(p.Price)||+p.Price<0)m="Enter a price of 0 or more.";
+ else if(p.Stock===""||isNaN(p.Stock)||+p.Stock<0)m="Enter the stock count (0 or more).";
+ else if(p.CoverImageURL&&!/^https?:\/\//i.test(p.CoverImageURL))m="The cover image link must start with https://";
+ $("perr").textContent=m;if(m)return;
+ $("psave").disabled=true;$("psave").textContent="Saving…";
+ try{await api("saveProduct",{product:p});toast("Book saved. The store is updated.");clearForm();await loadProducts()}
+ catch(err){$("perr").textContent=err.message}
+ $("psave").disabled=false;$("psave").textContent="Save book";
+};
+
+if(pw)start().catch(()=>{});
+</script></body></html>
